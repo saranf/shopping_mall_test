@@ -23,11 +23,12 @@ enum ConsentType {
 }
 
 enum PiiAction {
-  READ    // 마스킹 상태 조회
-  REVEAL  // 평문 열람 (사유 필수)
-  EXPORT  // 열람권 행사 — 본인 데이터 내려받기
+  READ     // 마스킹 상태 조회
+  REVEAL   // 평문 열람 (사유 필수)
+  EXPORT   // 열람권 행사 — 본인 데이터 내려받기
   UPDATE
-  DELETE  // 파기
+  PROVIDE  // 제3자 제공 (배송사·PG 등)
+  DELETE   // 파기
 }
 
 model User {
@@ -40,6 +41,8 @@ model User {
   phoneEnc     String?
   phoneHash    String?
   rrnEnc       String? // 주민등록번호: 최소수집 원칙, 본인인증 등 법적근거 있을 때만
+  genderEnc    String? // 성별 M|F|OTHER (개인정보 — 암호화)
+  birthDateEnc String? // 생년월일 YYYY-MM-DD (개인정보 — 암호화)
   // --- 비민감 메타 ---
   role         Role      @default(CUSTOMER)
   status       String    @default("ACTIVE") // ACTIVE | DORMANT | WITHDRAWN
@@ -51,6 +54,8 @@ model User {
 
   consents            ConsentRecord[]
   addresses           Address[]
+  paymentMethods      PaymentMethod[]
+  provisions          ProvisionLog[]
   orders              Order[]
   inquiries           Inquiry[]
   accessLogsAsSubject PiiAccessLog[]  @relation("subject")
@@ -85,6 +90,28 @@ model Address {
   addr2Enc     String?
   isDefault    Boolean  @default(false)
   createdAt    DateTime @default(now())
+}
+
+// 결제수단 — 카드번호/계좌번호(민감·비밀정보)를 암호화 저장하는 지점.
+// 노출은 브랜드+뒤 4자리만(cardLast4), 전체번호는 복호화 경로에서만.
+model PaymentMethod {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  type          String   @default("CARD") // CARD | BANK
+  // 카드
+  cardBrand     String? // 비민감 (VISA/MASTER/... )
+  cardLast4     String? // 마스킹 노출용 뒤 4자리
+  cardNumberEnc String? // 전체 카드번호 (AES-256-GCM)
+  cardExpiryEnc String? // 유효기간 MM/YY
+  // 계좌(환불용)
+  bankName      String?
+  accountEnc    String? // 계좌번호 (AES-256-GCM)
+  holderEnc     String? // 예금주명
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Product {
@@ -124,6 +151,23 @@ model OrderItem {
   productId String
   qty       Int
   priceKrw  Int
+}
+
+// 제3자 제공 대장(PIPA 제17조 · 제26조 위수탁) — 개인정보를 외부(배송사/PG 등)에
+// 제공한 사실을 기록. 제공 항목·목적·근거·제공받는 자를 남겨 정보주체 열람에 대응한다.
+// 실제 전송은 하지 않고(테스트용) 제공 사실만 대장에 적재한다.
+model ProvisionLog {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  orderId      String?
+  recipientOrg String   // 제공받는 자 (예: CJ대한통운, 토스페이먼츠)
+  items        String   // 제공 항목 (쉼표 구분: 이름,연락처,주소)
+  purpose      String   // 제공 목적 (예: 상품 배송)
+  basis        String   // 제공 근거 (동의 | 계약이행)
+  providedAt   DateTime @default(now())
+
+  @@index([userId, providedAt])
 }
 
 // 1:1 고객 문의 — 답변 연락을 위해 연락처(개인정보)를 암호화 저장하는 또 하나의 PII 수집 지점.

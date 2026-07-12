@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 type Log = { seq: number; action: string; actorId: string | null; subjectUserId: string | null; fields: string; reason: string | null; ip: string | null; at: string; hash: string };
 type Data = { integrity: { ok: boolean; brokenAtSeq: number | null; total: number }; logs: Log[] };
 
-const ACTION_COLOR: Record<string, string> = { READ: '#767676', REVEAL: '#e02020', EXPORT: '#0064ff', UPDATE: '#02a94c', DELETE: '#b0208c' };
+const ACTION_COLOR: Record<string, string> = { READ: '#767676', REVEAL: '#e02020', EXPORT: '#0064ff', UPDATE: '#02a94c', PROVIDE: '#e08a00', DELETE: '#b0208c' };
 
 export default function AdminLogsPage() {
   const router = useRouter();

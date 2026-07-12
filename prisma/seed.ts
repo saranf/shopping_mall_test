@@ -31,7 +31,10 @@ async function main() {
     password: 'customer1234',
     name: '이고객',
     phone: '010-3333-4444',
-    consents: { TERMS: true, PRIVACY_REQUIRED: true, MARKETING: false },
+    rrn: '900101-1234567',
+    gender: 'M',
+    birthDate: '1990-01-01',
+    consents: { TERMS: true, PRIVACY_REQUIRED: true, MARKETING: false, SENSITIVE_UNIQUE_ID: true, THIRD_PARTY_PROVISION: true },
   });
 
   // 샘플 상품
@@ -69,6 +72,19 @@ async function main() {
     },
   });
 
+  // 결제수단(카드) — 카드번호 암호화 저장
+  await prisma.paymentMethod.create({
+    data: {
+      userId: customer.id,
+      type: 'CARD',
+      cardBrand: 'VISA',
+      cardLast4: '1111',
+      cardNumberEnc: encrypt('4111111111111111'),
+      cardExpiryEnc: encryptNullable('12/28'),
+      isDefault: true,
+    },
+  });
+
   await prisma.inquiry.create({
     data: {
       userId: customer.id,
@@ -85,7 +101,8 @@ async function main() {
 
   console.log('✅ 시드 완료. 로그인: admin@example.com / admin1234, customer@example.com / customer1234');
   console.log('   관리자 id:', admin.id);
-  console.log('   개인정보 저장 지점: 회원 프로필 · 주소록 · 주문 배송지 · 1:1 문의 (모두 AES-256-GCM 암호화)');
+  console.log('   개인정보 저장 지점: 회원 프로필(이름·휴대폰·주민번호·성별·생년월일) · 주소록 · 주문 배송지 · 결제수단(카드) · 1:1 문의 (모두 AES-256-GCM 암호화)');
+  console.log('   생애주기: 수집(가입/주문/결제) → 저장(암호화) → 이용(마스킹/수정/열람) → 제3자 제공(배송) → 파기(항목별/탈퇴)');
 }
 
 main()

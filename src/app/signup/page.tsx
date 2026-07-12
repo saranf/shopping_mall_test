@@ -15,7 +15,7 @@ type Consents = {
 
 export default function SignupPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ email: '', password: '', name: '', phone: '', rrn: '' });
+  const [form, setForm] = useState({ email: '', password: '', name: '', phone: '', rrn: '', gender: '', birthDate: '' });
   const [consents, setConsents] = useState<Consents>({
     TERMS: false,
     PRIVACY_REQUIRED: false,
@@ -47,6 +47,8 @@ export default function SignupPage() {
       name: form.name,
       phone: form.phone || undefined,
       rrn: form.rrn || undefined,
+      gender: form.gender || undefined,
+      birthDate: form.birthDate || undefined,
       consents,
     };
     const res = await fetch('/api/auth/signup', {
@@ -87,6 +89,22 @@ export default function SignupPage() {
         <div className="field">
           <label>휴대폰 (선택)</label>
           <input value={form.phone} onChange={set('phone')} placeholder="010-1234-5678" />
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div className="field" style={{ flex: 1 }}>
+            <label>성별 (선택)</label>
+            <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}
+              style={{ padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 14 }}>
+              <option value="">선택 안 함</option>
+              <option value="M">남성</option>
+              <option value="F">여성</option>
+              <option value="OTHER">기타</option>
+            </select>
+          </div>
+          <div className="field" style={{ flex: 1 }}>
+            <label>생년월일 (선택)</label>
+            <input type="date" value={form.birthDate} onChange={(e) => setForm({ ...form, birthDate: e.target.value })} />
+          </div>
         </div>
         <div className="field">
           <label>주민등록번호 (선택 · 본인인증용)</label>
