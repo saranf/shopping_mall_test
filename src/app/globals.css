@@ -1,0 +1,116 @@
+/* 스마트스토어 클론 — 공용 스타일. 개인정보 화면은 항상 마스킹 노출 전제. */
+:root {
+  --brand: #03c75a; /* 네이버 그린 계열 */
+  --brand-dark: #02a94c;
+  --ink: #191919;
+  --muted: #767676;
+  --line: #ececec;
+  --bg: #fafafa;
+  --danger: #e02020;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.container { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+
+/* --- 헤더 --- */
+.nav {
+  position: sticky; top: 0; z-index: 10;
+  background: #fff; border-bottom: 1px solid var(--line);
+}
+.nav-inner {
+  max-width: 960px; margin: 0 auto; padding: 12px 16px;
+  display: flex; align-items: center; gap: 16px;
+}
+.nav-logo { font-weight: 800; font-size: 18px; }
+.nav-logo b { color: var(--brand); }
+.nav-spacer { flex: 1; }
+.nav a.nav-link { color: var(--muted); font-size: 14px; }
+.nav a.nav-link:hover { color: var(--ink); }
+.nav .cart-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; margin-left: 4px;
+  background: var(--brand); color: #fff; border-radius: 9px; font-size: 11px; font-weight: 700;
+}
+
+/* --- 상품 그리드 --- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; list-style: none; padding: 0; }
+.card {
+  background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px; display: flex; flex-direction: column; gap: 6px;
+}
+.card .thumb {
+  aspect-ratio: 1/1; border-radius: 8px; background: linear-gradient(135deg, #eef7f0, #e3f0e8);
+  display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 4px;
+}
+.card .name { font-weight: 600; }
+.card .desc { color: var(--muted); font-size: 13px; min-height: 34px; }
+.card .price { font-weight: 800; font-size: 17px; margin-top: 2px; }
+.card .stock { font-size: 12px; }
+.card .stock.in { color: var(--brand-dark); }
+.card .stock.out { color: var(--danger); }
+
+/* --- 버튼 / 폼 --- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 16px; border-radius: 8px; border: 1px solid var(--brand);
+  background: var(--brand); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.btn:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+.btn:disabled { background: #ccc; border-color: #ccc; cursor: not-allowed; }
+.btn.ghost { background: #fff; color: var(--ink); border-color: var(--line); }
+.btn.ghost:hover { background: #f4f4f4; }
+.btn.danger { background: #fff; color: var(--danger); border-color: #f2c2c2; }
+.btn.block { width: 100%; }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 13px; font-weight: 600; }
+.field input {
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px;
+  background: #fff;
+}
+.field input:focus { outline: 2px solid var(--brand); border-color: var(--brand); }
+.field .hint { font-size: 12px; color: var(--muted); }
+
+.check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; margin-bottom: 8px; }
+.check input { margin-top: 3px; }
+.check .req { color: var(--danger); font-weight: 700; }
+.check .opt { color: var(--muted); }
+
+.panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.form-narrow { max-width: 420px; margin: 0 auto; }
+
+.alert { padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; }
+.alert.err { background: #fff0f0; color: var(--danger); border: 1px solid #f2c2c2; }
+.alert.ok { background: #eefaf1; color: var(--brand-dark); border: 1px solid #bfe6cc; }
+
+.muted { color: var(--muted); }
+.h1 { font-size: 24px; font-weight: 800; margin: 0 0 4px; }
+.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+
+/* --- 장바구니 / 주문 라인 --- */
+.line { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.line:last-child { border-bottom: 0; }
+.line .l-name { font-weight: 600; }
+.line .l-meta { color: var(--muted); font-size: 13px; }
+.line .l-price { margin-left: auto; font-weight: 700; }
+.qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.qty button { width: 30px; height: 30px; border: 0; background: #fff; cursor: pointer; font-size: 16px; }
+.qty span { min-width: 30px; text-align: center; font-size: 14px; }
+
+.summary { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--ink); }
+.summary .total { font-size: 20px; font-weight: 800; }
+
+.pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #eef7f0; color: var(--brand-dark); }

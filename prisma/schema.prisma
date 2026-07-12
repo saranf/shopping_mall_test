@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+}
+
+// 동의 항목을 필수/선택으로 분리 저장 (PIPA 제22조 — 항목별 개별 동의)
+enum ConsentType {
+  TERMS                  // 이용약관 (필수)
+  PRIVACY_REQUIRED       // 개인정보 수집·이용 필수 동의
+  MARKETING              // 마케팅 수신 (선택)
+  THIRD_PARTY_PROVISION  // 제3자 제공 (선택)
+  SENSITIVE_UNIQUE_ID    // 고유식별정보(주민번호 등) 처리 (별도 동의)
+}
+
+enum PiiAction {
+  READ    // 마스킹 상태 조회
+  REVEAL  // 평문 열람 (사유 필수)
+  EXPORT  // 열람권 행사 — 본인 데이터 내려받기
+  UPDATE
+  DELETE  // 파기
+}
+
+model User {
+  id           String    @id @default(cuid())
+  // --- 암호화 저장 컬럼 (AES-256-GCM) ---
+  emailEnc     String
+  emailHash    String    @unique // 블라인드 인덱스(HMAC) — 평문 없이 동등검색
+  passwordHash String
+  nameEnc      String
+  phoneEnc     String?
+  phoneHash    String?
+  rrnEnc       String? // 주민등록번호: 최소수집 원칙, 본인인증 등 법적근거 있을 때만
+  // --- 비민감 메타 ---
+  role         Role      @default(CUSTOMER)
+  status       String    @default("ACTIVE") // ACTIVE | DORMANT | WITHDRAWN
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
+  withdrawnAt  DateTime? // 탈퇴 시각
+  purgeAfter   DateTime? // 보관기간 만료 후 완전 파기 예정일
+
+  consents            ConsentRecord[]
+  addresses           Address[]
+  orders              Order[]
+  inquiries           Inquiry[]
+  accessLogsAsSubject PiiAccessLog[]  @relation("subject")
+  accessLogsAsActor   PiiAccessLog[]  @relation("actor")
+
+  @@index([status, purgeAfter])
+}
+
+model ConsentRecord {
+  id        String      @id @default(cuid())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  type      ConsentType
+  version   String // 동의받은 약관/방침 버전
+  granted   Boolean
+  ip        String? // 동의 시점 증빙
+  grantedAt DateTime    @default(now())
+  revokedAt DateTime?
+
+  @@index([userId, type])
+}
+
+model Address {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  label        String?
+  recipientEnc String
+  phoneEnc     String
+  zipcode      String
+  addr1Enc     String
+  addr2Enc     String?
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  priceKrw    Int
+  stock       Int         @default(0)
+  imageUrl    String?
+  sellerId    String?
+  createdAt   DateTime    @default(now())
+  orderItems  OrderItem[]
+  inquiries   Inquiry[]
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  user         User        @relation(fields: [userId], references: [id])
+  userId       String
+  status       String      @default("PENDING") // PENDING|PAID|SHIPPED|DONE|CANCELLED
+  totalKrw     Int
+  // 주문 시점 배송지 스냅샷 — 개인정보 암호화 저장 (주소록 변경과 무관하게 고정)
+  recipientEnc String
+  phoneEnc     String
+  zipcode      String
+  addr1Enc     String
+  addr2Enc     String?
+  createdAt    DateTime    @default(now())
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  qty       Int
+  priceKrw  Int
+}
+
+// 1:1 고객 문의 — 답변 연락을 위해 연락처(개인정보)를 암호화 저장하는 또 하나의 PII 수집 지점.
+// 상품 문의/배송 문의 등. 비회원도 남길 수 있으므로 userId는 선택.
+model Inquiry {
+  id           String    @id @default(cuid())
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId       String?
+  product      Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId    String?
+  category     String    @default("PRODUCT") // PRODUCT|DELIVERY|REFUND|ETC
+  title        String
+  body         String
+  // --- 답변 연락용 개인정보 (암호화) ---
+  nameEnc      String
+  phoneEnc     String?
+  emailEnc     String?
+  status       String    @default("OPEN") // OPEN|ANSWERED|CLOSED
+  answer       String?
+  answeredAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+// 개인정보 접근 감사로그 (PIPA 제29조 안전조치 — 접근기록 보관·위변조 방지)
+// 해시체인: 각 레코드 hash = SHA256(prevHash + 정규화된 내용). 한 행을 조작하면
+// 그 이후 모든 hash가 어긋나 위·변조를 탐지할 수 있다.
+model PiiAccessLog {
+  seq           Int       @id @default(autoincrement()) // 체인 순서(결정적)
+  logId         String    @unique @default(cuid())
+  actor         User?     @relation("actor", fields: [actorId], references: [id])
+  actorId       String?
+  subject       User?     @relation("subject", fields: [subjectUserId], references: [id])
+  subjectUserId String?
+  action        PiiAction
+  fields        String // 접근한 필드명 (쉼표 구분)
+  reason        String? // REVEAL/EXPORT 시 사유 필수
+  ip            String?
+  userAgent     String?
+  at            DateTime // 앱에서 설정(해시 대상에 포함되므로 DB default 미사용)
+  prevHash      String? // 직전 레코드의 hash (제네시스는 null)
+  hash          String // 이 레코드의 체인 해시
+
+  @@index([subjectUserId, seq])
+  @@index([actorId, seq])
+}
