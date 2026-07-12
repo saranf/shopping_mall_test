@@ -37,6 +37,22 @@ async function main() {
     consents: { TERMS: true, PRIVACY_REQUIRED: true, MARKETING: false, SENSITIVE_UNIQUE_ID: true, THIRD_PARTY_PROVISION: true },
   });
 
+  // 추가 고객 — 제3자 제공 묶기/휴면 전환 테스트용
+  const marketingOptIn = await createUser({
+    email: 'promo@example.com', password: 'promo1234', name: '박마케팅', phone: '010-5555-6666', gender: 'F', birthDate: '1988-05-05',
+    consents: { TERMS: true, PRIVACY_REQUIRED: true, MARKETING: true, THIRD_PARTY_PROVISION: true },
+  });
+  const noProvision = await createUser({
+    email: 'noshare@example.com', password: 'noshare1234', name: '최비동의', phone: '010-7777-8888', gender: 'M', birthDate: '1995-09-09',
+    consents: { TERMS: true, PRIVACY_REQUIRED: true, MARKETING: false, THIRD_PARTY_PROVISION: false },
+  });
+  // 장기 미접속 회원 — 일괄 휴면 대상(400일 전 접속으로 설정)
+  await prisma.user.update({
+    where: { id: noProvision.id },
+    data: { lastLoginAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000) },
+  });
+  void marketingOptIn;
+
   // 샘플 상품
   const [coffee, buds] = await Promise.all([
     prisma.product.create({ data: { name: '유기농 원두 1kg', description: '갓 볶은 스페셜티 원두', priceKrw: 24000, stock: 50, sellerId: seller.id } }),

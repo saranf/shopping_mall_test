@@ -15,6 +15,7 @@
 | `/cart` · `/checkout` | 장바구니 · 주문서(배송지 암호화 저장) |
 | `/mypage` | 주문내역 · 배송지 주소록 · 1:1 문의 · 개인정보 열람/파기 |
 | `/seller` | 판매자 상품 등록·삭제 |
+| `/admin/users` | 관리자 — 회원 관리(휴면 전환·해제·일괄, 완전 파기, 평문 열람, **제3자 제공 묶기**) |
 | `/admin/orders` | 관리자 — 주문 배송 처리(제3자 제공) |
 | `/admin/logs` | 관리자 — 개인정보 접근 감사로그 + 해시체인 무결성 검증 |
 
@@ -28,9 +29,9 @@
 |------|------|------|
 | 수집 | 회원가입(이름·휴대폰·주민번호·성별·생년월일), 배송지·결제수단·문의 등록 | `/signup`, `/mypage`, `/checkout` |
 | 저장 | AES-256-GCM 암호화 + 블라인드 인덱스(HMAC) | `src/lib/crypto.ts` |
-| 이용 | 마스킹 조회, **프로필 수정(PATCH)**, 관리자 평문 열람(사유) | `/mypage`, `PATCH /api/me` |
-| 제공 | **제3자 제공(배송사)** — 제공 대장 + PROVIDE 감사로그 | `POST /api/orders/[id]/ship`, `/admin/orders` |
-| 파기 | **항목별 파기**(주민번호 등) + 회원 탈퇴 전체 파기 | `POST /api/me/erase`, `DELETE /api/me` |
+| 이용 | 마스킹 조회, **프로필 수정(PATCH)**, 관리자 평문 열람(사유), **휴면 전환·해제**(장기 미접속 분리보관) | `/mypage`, `PATCH /api/me`, `/admin/users` |
+| 제공 | **제3자 제공(배송사)** + **다건 제공 묶기(배치)** — 제공 대장/배치 + PROVIDE 감사로그, 동의 근거 시 미동의 회원 자동 제외 | `POST /api/orders/[id]/ship`, `POST /api/admin/provisions` |
+| 파기 | **항목별 파기**(주민번호 등), 회원 탈퇴 전체 파기, **보관기간 만료 완전 파기(하드 삭제)** | `POST /api/me/erase`, `DELETE /api/me`, `POST /api/admin/users/purge` |
 
 ## 개인정보 보호 핵심 (이 프로젝트의 요지)
 

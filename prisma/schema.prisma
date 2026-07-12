@@ -49,6 +49,7 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   lastLoginAt  DateTime?
+  dormantAt    DateTime? // 휴면 전환 시각 (장기 미접속 — 분리보관)
   withdrawnAt  DateTime? // 탈퇴 시각
   purgeAfter   DateTime? // 보관기간 만료 후 완전 파기 예정일
 
@@ -153,21 +154,40 @@ model OrderItem {
   priceKrw  Int
 }
 
-// 제3자 제공 대장(PIPA 제17조 · 제26조 위수탁) — 개인정보를 외부(배송사/PG 등)에
+// 제3자 제공 배치 — 여러 회원의 개인정보를 한 목적으로 묶어 외부에 제공한 "건"을 표현.
+// 예: 마케팅 제휴사에 특정 조건 회원의 이름·연락처를 일괄 제공.
+model ProvisionBatch {
+  id           String         @id @default(cuid())
+  recipientOrg String         // 제공받는 자
+  purpose      String         // 제공 목적
+  basis        String         // 제공 근거 (동의 | 법령 | 계약이행)
+  items        String         // 제공 항목 (쉼표 구분)
+  createdBy    String         // 제공 실행 관리자 uid
+  count        Int            // 묶인 회원 수
+  createdAt    DateTime       @default(now())
+  provisions   ProvisionLog[]
+
+  @@index([createdAt])
+}
+
+// 제3자 제공 대장(PIPA 제17조 · 제26조 위수탁) — 개인정보를 외부(배송사/PG/제휴사 등)에
 // 제공한 사실을 기록. 제공 항목·목적·근거·제공받는 자를 남겨 정보주체 열람에 대응한다.
 // 실제 전송은 하지 않고(테스트용) 제공 사실만 대장에 적재한다.
 model ProvisionLog {
-  id           String   @id @default(cuid())
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String          @id @default(cuid())
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
   orderId      String?
-  recipientOrg String   // 제공받는 자 (예: CJ대한통운, 토스페이먼츠)
-  items        String   // 제공 항목 (쉼표 구분: 이름,연락처,주소)
-  purpose      String   // 제공 목적 (예: 상품 배송)
-  basis        String   // 제공 근거 (동의 | 계약이행)
-  providedAt   DateTime @default(now())
+  batch        ProvisionBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  batchId      String?
+  recipientOrg String          // 제공받는 자 (예: CJ대한통운, 토스페이먼츠)
+  items        String          // 제공 항목 (쉼표 구분: 이름,연락처,주소)
+  purpose      String          // 제공 목적 (예: 상품 배송)
+  basis        String          // 제공 근거 (동의 | 계약이행)
+  providedAt   DateTime        @default(now())
 
   @@index([userId, providedAt])
+  @@index([batchId])
 }
 
 // 1:1 고객 문의 — 답변 연락을 위해 연락처(개인정보)를 암호화 저장하는 또 하나의 PII 수집 지점.

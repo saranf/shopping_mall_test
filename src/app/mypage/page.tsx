@@ -54,6 +54,7 @@ export default function MyPage() {
       {(profile.role === 'ADMIN' || profile.role === 'SELLER') && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           {profile.role === 'SELLER' && <Link href="/seller" className="btn ghost">판매자 상품관리</Link>}
+          {profile.role === 'ADMIN' && <Link href="/admin/users" className="btn ghost">회원 관리</Link>}
           {profile.role === 'ADMIN' && <Link href="/admin/orders" className="btn ghost">주문·배송 관리</Link>}
           {profile.role === 'ADMIN' && <Link href="/admin/logs" className="btn ghost">개인정보 접근로그</Link>}
         </div>
